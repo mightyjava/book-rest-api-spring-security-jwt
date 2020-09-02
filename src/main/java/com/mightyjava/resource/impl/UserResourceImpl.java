@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,15 +38,25 @@ public class UserResourceImpl {
 	@PostMapping(value = "/authenticate", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	public ResponseEntity<String> authenticate(@RequestBody User user) {
 		log.info("UserResourceImpl : authenticate");
-		authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 		JSONObject jsonObject = new JSONObject();
 		try {
-			String email = user.getEmail();
-			jsonObject.put("token", tokenProvider.createToken(email, userRepository.findByEmail(email).getRole()));
+			Authentication authentication = authenticationManager
+					.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
+			if (authentication.isAuthenticated()) {
+				String email = user.getEmail();
+				jsonObject.put("name", authentication.getName());
+				jsonObject.put("authorities", authentication.getAuthorities());
+				jsonObject.put("token", tokenProvider.createToken(email, userRepository.findByEmail(email).getRole()));
+				return new ResponseEntity<String>(jsonObject.toString(), HttpStatus.OK);
+			}
 		} catch (JSONException e) {
-			e.printStackTrace();
+			try {
+				jsonObject.put("exception", e.getMessage());
+			} catch (JSONException e1) {
+				e1.printStackTrace();
+			}
+			return new ResponseEntity<String>(jsonObject.toString(), HttpStatus.UNAUTHORIZED);
 		}
-		return new ResponseEntity<String>(jsonObject.toString(), HttpStatus.OK);
+		return null;
 	}
 }

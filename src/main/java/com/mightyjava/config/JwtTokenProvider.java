@@ -7,6 +7,7 @@ import java.util.Date;
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,14 +25,15 @@ public class JwtTokenProvider implements Serializable {
 
 	private static final long serialVersionUID = 2569800841756370596L;
 
-	private String secretKey = "almightyjava";
+	@Value("${jwt.secret-key}")
+	private String secretKey;
 
 	@PostConstruct
 	protected void init() {
 		secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
 	}
 
-	private long validityInMilliseconds = 10 * 60 * 60;
+	private long validityInMilliseconds = 50 * 60 * 60; // 2 minute
 
 	public String createToken(String username, Role role) {
 		Claims claims = Jwts.claims().setSubject(username);
@@ -42,19 +44,18 @@ public class JwtTokenProvider implements Serializable {
 				.setExpiration(new Date(now.getTime() + validityInMilliseconds))
 				.signWith(SignatureAlgorithm.HS256, secretKey).compact();
 	}
-	
+
 	@Autowired
 	private UserDetailsService userDetailsService;
-	
-	public Authentication getAuthentication(String token) {
-		String username = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
+
+	public Authentication getAuthentication(String username) {
 		UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-		return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+		return new UsernamePasswordAuthenticationToken(userDetails.getUsername(), userDetails.getPassword(),
+				userDetails.getAuthorities());
 	}
-	
-	public boolean validateToken(String token) {
-		Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
-		return true;
+
+	public Claims getClaimsFromToken(String token) {
+		return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
 	}
 
 }
