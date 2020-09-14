@@ -11,6 +11,7 @@
 	<groupId>com.mightyjava</groupId>
 	<artifactId>book-rest-api-spring-security-jwt</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
 	<name>book-rest-api-spring-security-jwt</name>
 	<description>Integrate Spring Security and JWT with Spring Boot to secure our REST API</description>
 
@@ -77,6 +78,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>book-rest-api</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
